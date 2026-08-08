@@ -1,0 +1,647 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Bioglow — Missões 2026/27</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: #f5f3e7;
+      color: #173d2d;
+      font: 16px Arial, sans-serif;
+    }
+
+    header,
+    main {
+      max-width: 1400px;
+      margin: auto;
+      padding: 26px 5vw;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+    }
+
+    h1 {
+      font-size: clamp(40px, 6vw, 75px);
+      margin: 8px 0;
+      letter-spacing: -5px;
+    }
+
+    h1 span {
+      color: #d93635;
+    }
+
+    .ey {
+      color: #6e874b;
+      font-size: 12px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .season,
+    .card,
+    .panel {
+      background: #fffef6;
+      border: 1px solid #d7dfc6;
+      border-radius: 16px;
+    }
+
+    .season {
+      padding: 12px;
+      font-weight: bold;
+    }
+
+    .board {
+      position: relative;
+      aspect-ratio: 1.78;
+      background: #15251c;
+      border: 12px solid #20251f;
+      overflow: hidden;
+      box-shadow: 0 18px 45px #173d2d33;
+    }
+
+    .board img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .dot {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      z-index: 10;
+      background: transparent;
+      color: transparent;
+      border: none;
+      border-radius: 50%;
+      /* área de clique um pouco generosa — como fica invisível, não
+         precisa mais bater pixel a pixel com o badge impresso */
+      width: clamp(30px, 4.4vw, 52px);
+      height: clamp(30px, 4.4vw, 52px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: clamp(11px, 1.3vw, 15px);
+      cursor: pointer;
+      padding: 0;
+      transition: color .2s ease, transform .2s ease;
+    }
+
+    .dot::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle, #d9ee70b0, #d9ee7000 70%);
+      opacity: 0;
+      transform: scale(.55);
+      transition: opacity .25s ease, transform .25s ease;
+    }
+
+    .dot:hover,
+    .dot:focus-visible,
+    .dot.active {
+      color: #173d2d;
+      transform: translate(-50%, -50%) scale(1.1);
+    }
+
+    .dot:hover::before,
+    .dot:focus-visible::before,
+    .dot.active::before {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .dot:focus-visible {
+      outline: 2px solid #173d2d;
+      outline-offset: 3px;
+    }
+
+    /* bases intercambiáveis (missões 13-15): brilho esverdeado, igual ao
+       círculo branco tracejado que elas têm no tapete impresso */
+    .dot.base::before {
+      background: radial-gradient(circle, #6e874bb0, #6e874b00 70%);
+    }
+
+    /* no toque não existe hover, então mantém uma marca bem discreta
+       sempre visível — senão ninguém acha onde tocar no celular */
+    @media (hover: none) {
+      .dot { color: #17402ea0; }
+      .dot::before { opacity: .5; transform: scale(.75); }
+      .dot.active::before { opacity: 1; transform: scale(1); }
+    }
+
+    #zoom {
+      position: absolute;
+      display: none;
+      z-index: 5;
+      width: 190px;
+      height: 190px;
+      border-radius: 50%;
+      border: 5px solid #d9ee70;
+      background: url(image.jpg) no-repeat;
+      pointer-events: none;
+      box-shadow: 0 8px 25px #0009, inset 0 0 30px #00000055;
+    }
+
+    #zoom::before,
+    #zoom::after {
+      content: "";
+      position: absolute;
+      background: #d9ee70aa;
+    }
+
+    #zoom::before { left: 50%; top: 14px; bottom: 14px; width: 1px; transform: translateX(-50%); }
+    #zoom::after  { top: 50%; left: 14px; right: 14px; height: 1px; transform: translateY(-50%); }
+
+    .board.zooming #zoom {
+      display: block;
+    }
+
+    #info {
+      position: absolute;
+      display: none;
+      z-index: 6;
+      width: 280px;
+      padding: 15px;
+      background: #fffef6;
+      border: 1px solid #d7dfc6;
+      border-radius: 15px;
+      box-shadow: 0 15px 35px #173d2d40;
+    }
+
+    #info.show {
+      display: block;
+    }
+
+    #info h2 {
+      font-size: 20px;
+      margin: 7px 0;
+    }
+
+    #info p {
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .info-close {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      margin: 0;
+      padding: 0;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #f5f3e7;
+      color: #173d2d;
+      font-size: 12px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .media-box {
+      margin: 10px 0;
+      border-radius: 10px;
+      overflow: hidden;
+      aspect-ratio: 16 / 10;
+      background: #edf4d7;
+      border: 1.5px dashed #c3d19f;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .media-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .media-box .ph {
+      font-size: 10.5px;
+      color: #6e874b;
+      text-align: center;
+      padding: 10px;
+      line-height: 1.5;
+    }
+
+    .media-box .ph code {
+      display: inline-block;
+      margin-top: 3px;
+      background: #dbe6bd;
+      padding: 1px 5px;
+      border-radius: 4px;
+      color: #173d2d;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 20px;
+      margin-top: 22px;
+    }
+
+    .panel {
+      padding: 20px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      max-height: 360px;
+      overflow: auto;
+    }
+
+    .card {
+      padding: 11px;
+      cursor: pointer;
+    }
+
+    .card:hover {
+      border-color: #d93635;
+    }
+
+    .card b {
+      font-size: 12px;
+      color: #d93635;
+    }
+
+    .card strong {
+      display: block;
+      font-size: 13px;
+      margin: 5px 0;
+    }
+
+    .card small {
+      font-size: 11px;
+      color: #617065;
+    }
+
+    .scores {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+    }
+
+    .scores div {
+      background: #edf4d7;
+      padding: 13px;
+      border-radius: 12px;
+    }
+
+    .scores small {
+      display: block;
+      font-size: 11px;
+    }
+
+    .scores b {
+      font-size: 27px;
+    }
+
+    a,
+    button {
+      display: inline-block;
+      margin-top: 15px;
+      padding: 11px 14px;
+      border: 0;
+      border-radius: 10px;
+      background: #173d2d;
+      color: #fff;
+      text-decoration: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    @media (max-width: 800px) {
+      header,
+      .layout {
+        display: block;
+      }
+
+      .season {
+        display: inline-block;
+        margin-top: 15px;
+      }
+
+      .panel {
+        margin-top: 18px;
+      }
+
+      .cards {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      #zoom {
+        display: none !important;
+      }
+
+      #info {
+        position: fixed !important;
+        left: 5vw !important;
+        right: 5vw;
+        top: auto !important;
+        bottom: 4vw !important;
+        width: 90vw;
+        max-height: 75vh;
+        overflow: auto;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div>
+      <div class="ey">FIRST LEGO League · Desafio do Robô</div>
+      <h1>Missões <span>Bioglow</span></h1>
+    </div>
+    <div class="season">
+      Temporada 2026/27<br>
+      <small>Explore a arena</small>
+    </div>
+  </header>
+
+  <main>
+    <p>Passe o mouse sobre a mesa para usar a lupa — um brilho verde aparece em cada ponto de missão. No celular, é só tocar onde vir a marca discreta.</p>
+
+    <section class="board" id="board">
+      <img src="image.jpg" alt="Mesa de missões Bioglow">
+      <div id="dots"></div>
+      <div id="zoom"></div>
+      <div id="info"></div>
+    </section>
+
+    <div class="layout">
+      <section class="panel">
+        <h2>Mapa de missões</h2>
+        <div class="cards" id="cards"></div>
+      </section>
+
+      <aside class="panel">
+        <h2>Pontuação</h2>
+        <div class="scores">
+          <div>
+            <small>Sem bônus / sem discos</small>
+            <b>380</b>
+          </div>
+          <div>
+            <small>Com bônus / sem discos</small>
+            <b>470</b>
+          </div>
+          <div>
+            <small>Sem bônus / com discos</small>
+            <b>440</b>
+          </div>
+          <div>
+            <small>Com bônus / todos os discos</small>
+            <b>530</b>
+          </div>
+        </div>
+        <p>Discos: 1 = 10 · 2 = 15 · 3 = 25 · 4 = 35 · 5 = 50 · 6 = 50 pontos.</p>
+        <a href="https://www.youtube.com/watch?v=uhZZ8O1StiQ" target="_blank">▶ Assistir vídeo completo</a>
+      </aside>
+    </div>
+  </main>
+
+  <script>
+    const missoes = [
+      { "id": "M1", "nome": "Levantamento com Drone", "descricao": "Empurrar o drone e deixá-lo acima do tapete.", "bonus": "Inverter o mapa LIDAR.", "acao": "Arrastar", "minimo": 20, "maximo": 30, "segundos": 92 },
+      { "id": "M2", "nome": "Sementes Explosivas", "descricao": "Retirar uma semente entre as folhas e soltá-las.", "bonus": "Tirar artefato precioso.", "acao": "Retirar", "minimo": 10, "maximo": 30, "segundos": 128 },
+      { "id": "M3", "nome": "Vire a Rocha", "descricao": "Puxar a alavanca e revelar o lado oculto.", "bonus": "Inverter novamente.", "acao": "Puxar", "minimo": 20, "maximo": 30, "segundos": 145 },
+      { "id": "M4", "nome": "Folhas da Sorte", "descricao": "Retirar as folhas e deixar a folha do grilo.", "bonus": "Manter o grilo na posição inicial.", "acao": "Puxar", "minimo": 20, "maximo": 30, "segundos": 176 },
+      { "id": "M5", "nome": "Raízes que se Estendem", "descricao": "Levantar a raiz até deixá-la estendida.", "bonus": "—", "acao": "Levantar", "minimo": 10, "maximo": 20, "segundos": 210 },
+      { "id": "M6", "nome": "Formigas Cortadeiras", "descricao": "Empurrar a formiga até o ninho sem soltar as folhas.", "bonus": "—", "acao": "Empurrar", "minimo": 10, "maximo": 40, "segundos": 235 },
+      { "id": "M7", "nome": "Fungo Gigante", "descricao": "Puxar o micélio até ficar estendido.", "bonus": "Raiz adversária estendida.", "acao": "Agarrar", "minimo": 20, "maximo": 40, "segundos": 265 },
+      { "id": "M8", "nome": "Emaranhado", "descricao": "Levantar a trepadeira e deixá-la cair.", "bonus": "—", "acao": "Levantar", "minimo": 30, "maximo": 30, "segundos": 295 },
+      { "id": "M9", "nome": "Plataforma de Pesquisa", "descricao": "Levantar a plataforma, ativar a câmera e derrubar a semente.", "bonus": "—", "acao": "Levantar", "minimo": 10, "maximo": 30, "segundos": 330 },
+      { "id": "M10", "nome": "Micro-habitats Sensíveis", "descricao": "Fazer caracol e aranha encostarem no tapete.", "bonus": "—", "acao": "Empurrar", "minimo": 10, "maximo": 20, "segundos": 355 },
+      { "id": "M11", "nome": "Janela para o Passado", "descricao": "Abaixar a cobertura para mostrar a raiz.", "bonus": "—", "acao": "Abaixar", "minimo": 20, "maximo": 20, "segundos": 380 },
+      { "id": "M12", "nome": "Ancião da Floresta", "descricao": "Levantar a haste, pegar o disco e colocá-lo no suporte.", "bonus": "—", "acao": "Levantar", "minimo": 10, "maximo": 30, "segundos": 405 },
+      { "id": "M13", "nome": "Espécies-chave", "descricao": "Colocar a espécie-chave na base com árvores levantadas.", "bonus": "—", "acao": "Entregar", "minimo": 30, "maximo": 30, "segundos": 430 },
+      { "id": "M14", "nome": "Sementes da Renovação", "descricao": "Colocar as sementes em contato com o tapete.", "bonus": "Bônus: sementes encostando no tapete.", "acao": "Colocar", "minimo": 5, "maximo": 40, "segundos": 455 },
+      { "id": "M15", "nome": "Arquitetura Biocêntrica", "descricao": "Empurrar claraboia, abaixar gaveta e levantar ninho.", "bonus": "—", "acao": "Docas corretas", "minimo": 10, "maximo": 40, "segundos": 485 }
+    ];
+
+    // Posições recalculadas a partir dos badges vermelhos e círculos brancos
+    // reais na foto da mesa (image.jpg). A missão 10 aparece em dois pontos
+    // físicos diferentes no tapete, por isso tem duas entradas.
+    // As bases 13-15 (círculos brancos = "bases intercambiáveis") ficam
+    // marcadas com o estilo tracejado — a missão que cada uma recebe pode
+    // mudar conforme o kit da sua região, então ajuste os ids se precisar.
+    const pos = [
+      [ 1, 45.5, 89.6], [ 2, 36.2, 53.4], [ 3, 15.2, 43.3], [ 4, 17.5, 18.8], [ 5, 27.0, 13.2],
+      [ 6, 69.9, 13.1], [ 7, 74.7, 13.1], [ 8, 32.5, 13.3], [ 9, 36.9, 13.3],
+      [10, 41.7, 16.2], [10, 53.6, 35.9],
+      [11, 65.6, 49.0], [12, 85.6, 36.6],
+      [13, 84.4, 15.9, true], [14, 49.9, 46.9, true], [15, 61.1, 88.7, true]
+    ];
+
+    // Dimensões reais do arquivo image.jpg — usadas para corrigir o corte
+    // que o object-fit:cover faz quando a proporção da imagem não bate
+    // com a proporção do quadro (.board).
+    const IMG_W = 852, IMG_H = 417;
+
+    // Calcula, para o tamanho atual do quadro na tela, qual fatia da
+    // imagem natural fica visível (o cover corta os lados ou o topo/base
+    // dependendo da proporção). Retorna tudo em frações (0–1).
+    function getCropInfo(cW, cH) {
+      const cAspect = cW / cH;
+      const iAspect = IMG_W / IMG_H;
+      let cropX = 0, cropY = 0, visW = 1, visH = 1, baseW, baseH;
+      if (iAspect > cAspect) {
+        // imagem proporcionalmente mais larga que o quadro -> corta dos lados
+        baseH = cH;
+        baseW = cH * iAspect;
+        visW = cW / baseW;
+        cropX = (1 - visW) / 2;
+      } else {
+        // imagem proporcionalmente mais alta -> corta de cima/baixo
+        baseW = cW;
+        baseH = cW / iAspect;
+        visH = cH / baseH;
+        cropY = (1 - visH) / 2;
+      }
+      return { cropX, cropY, visW, visH, baseW, baseH };
+    }
+
+    const board = document.querySelector('#board');
+    const zoom = document.querySelector('#zoom');
+    const info = document.querySelector('#info');
+    const isTouch = matchMedia('(hover: none)').matches;
+
+    let activeDot = null;
+
+    function mostrar(m, dot) {
+      if (activeDot) activeDot.classList.remove('active');
+      activeDot = dot || null;
+      if (activeDot) activeDot.classList.add('active');
+
+      // Convenção de arquivo: gifs/M1.gif, gifs/M2.gif ... um gif por missão.
+      // Assim que você salvar o arquivo com esse nome na pasta /gifs, ele
+      // aparece automaticamente aqui — não precisa editar nada no código.
+      const gifPath = `gifs/${m.id}.gif`;
+
+      info.innerHTML = `
+        <button class="info-close" type="button" aria-label="Fechar">✕</button>
+        <b>${m.id} · ${m.acao}</b>
+        <h2>${m.nome}</h2>
+        <div class="media-box" id="mediaBox">
+          <span class="ph">Ainda sem clipe.<br>Salve como<br><code>gifs/${m.id}.gif</code></span>
+        </div>
+        <p>${m.descricao}</p>
+        <p><b>Bônus:</b> ${m.bonus}</p>
+        <p style="color:#d93635"><b>Pontuação: ${m.minimo}–${m.maximo}</b></p>
+      `;
+      info.classList.add('show');
+      info.querySelector('.info-close').onclick = fecharInfo;
+
+      const mediaBox = document.getElementById('mediaBox');
+      const gif = new Image();
+      gif.alt = m.nome;
+      gif.onload = () => { mediaBox.innerHTML = ''; mediaBox.appendChild(gif); };
+      gif.onerror = () => {}; // sem gif ainda: mantém o placeholder acima
+      gif.src = gifPath;
+    }
+
+    function fecharInfo() {
+      info.classList.remove('show');
+      if (activeDot) activeDot.classList.remove('active');
+      activeDot = null;
+    }
+
+    const dots = [];
+
+    pos.forEach(p => {
+      const [num, x, y, isBase] = p;
+      const m = missoes[num - 1];
+      const d = document.createElement('button');
+      d.type = 'button';
+      d.className = 'dot' + (isBase ? ' base' : '');
+      d.textContent = num;
+      d.dataset.xi = x; // posição natural (% da imagem original)
+      d.dataset.yi = y;
+      d.setAttribute('aria-label', `${m.id} · ${m.nome}`);
+
+      const posicionar = () => {
+        // usa a posição JÁ CORRIGIDA (aplicada por layoutMarkers) do
+        // próprio marcador, não a coordenada natural, senão o painel
+        // abriria deslocado do mesmo jeito que os quadrados estavam.
+        const xc = parseFloat(d.style.left);
+        const yc = parseFloat(d.style.top);
+        info.style.left = Math.min(xc + 4, 66) + '%';
+        info.style.top = Math.max(Math.min(yc - 20, 66), 3) + '%';
+      };
+
+      const abrir = () => { mostrar(m, d); posicionar(); };
+
+      if (!isTouch) d.addEventListener('mouseenter', abrir);
+      d.addEventListener('focus', abrir);
+      d.addEventListener('click', (e) => { e.stopPropagation(); abrir(); });
+
+      document.querySelector('#dots').append(d);
+      dots.push(d);
+    });
+
+    // Aplica a posição de cada marcador convertendo a coordenada natural
+    // da imagem para a fração realmente visível dentro do quadro,
+    // compensando o corte do object-fit:cover. Roda de novo sempre que
+    // o tamanho do quadro muda (outra tela, outro monitor, rotação,
+    // zoom do navegador etc.), então os quadrados nunca saem do lugar.
+    function layoutMarkers() {
+      const r = board.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      const { cropX, cropY, visW, visH } = getCropInfo(r.width, r.height);
+      dots.forEach(d => {
+        const xi = parseFloat(d.dataset.xi) / 100;
+        const yi = parseFloat(d.dataset.yi) / 100;
+        const xc = (xi - cropX) / visW;
+        const yc = (yi - cropY) / visH;
+        d.style.left = (xc * 100) + '%';
+        d.style.top = (yc * 100) + '%';
+      });
+    }
+
+    layoutMarkers();
+    window.addEventListener('resize', layoutMarkers);
+    window.addEventListener('orientationchange', layoutMarkers);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(layoutMarkers);
+    const boardImg = board.querySelector('img');
+    if (boardImg.complete) layoutMarkers(); else boardImg.addEventListener('load', layoutMarkers);
+    if (window.ResizeObserver) new ResizeObserver(layoutMarkers).observe(board);
+
+    zoom.style.backgroundSize = '';
+    board.onmousemove = e => {
+      if (isTouch) return;
+      const r = board.getBoundingClientRect();
+      const x = e.clientX - r.left;
+      const y = e.clientY - r.top;
+
+      if (e.target.closest('.dot')) { board.classList.remove('zooming'); return; }
+
+      const ZOOM = 2.4;
+      const lensSize = zoom.offsetWidth;
+      const { cropX, cropY, visW, visH, baseW, baseH } = getCropInfo(r.width, r.height);
+
+      // ponto da imagem NATURAL que está embaixo do cursor agora
+      const xi = cropX + (x / r.width) * visW;
+      const yi = cropY + (y / r.height) * visH;
+
+      // posição desse ponto dentro da imagem já escalada pelo zoom
+      const bx = xi * baseW * ZOOM;
+      const by = yi * baseH * ZOOM;
+
+      zoom.style.backgroundSize = `${baseW * ZOOM}px ${baseH * ZOOM}px`;
+      zoom.style.backgroundPosition = `${-(bx - lensSize / 2)}px ${-(by - lensSize / 2)}px`;
+      zoom.style.left = Math.max(0, Math.min(x - lensSize / 2, r.width - lensSize)) + 'px';
+      zoom.style.top = Math.max(0, Math.min(y - lensSize / 2, r.height - lensSize)) + 'px';
+      board.classList.add('zooming');
+    };
+
+    board.onmouseleave = () => {
+      if (isTouch) return;
+      board.classList.remove('zooming');
+      info.classList.remove('show');
+      if (activeDot) activeDot.classList.remove('active');
+      activeDot = null;
+    };
+
+    // no toque, fecha o painel ao tocar fora dele e de um marcador
+    document.addEventListener('click', (e) => {
+      if (!isTouch) return;
+      if (!e.target.closest('.dot') && !e.target.closest('#info')) fecharInfo();
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharInfo(); });
+
+    missoes.forEach(m => {
+      let c = document.createElement('div');
+      c.className = 'card';
+      c.innerHTML = `<b>${m.id} · ${m.minimo}–${m.maximo} pts</b><strong>${m.nome}</strong><small>${m.acao}</small>`;
+      c.onclick = () => {
+
+        
+        mostrar(m);
+        info.style.left = '3%';
+        info.style.top = '3%';
+        info.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      };
+      document.querySelector('#cards').append(c);
+    });
+  </script>
+</body>
+</html>
